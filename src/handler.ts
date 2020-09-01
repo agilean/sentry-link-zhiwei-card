@@ -1,7 +1,4 @@
 import * as R from 'ramda';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
 import mockCard from './mockCard';
 
 // ENVIRONMENT
@@ -10,9 +7,6 @@ declare const PWD: string;
 declare const MOCK_API: string;
 declare const ZHIWEI_DOMAIN: string;
 declare const SENTRY_LARK_WEBHOOK: string;
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 /**
  * 处理 sentry webhook
@@ -50,10 +44,10 @@ async function workflow(opt: { payload: any }) {
     });
 }
 
-const getShareUrl = (cardId: string) => `${ZHIWEI_DOMAIN}/#/?viewId=whole&vuId=${cardId}`;
+const getShareUrl = (cardId: string) => `http://${ZHIWEI_DOMAIN}:7676/card/${cardId}/discuss`;
 
 function login() {
-    return fetch(`${ZHIWEI_DOMAIN}/login`, {
+    return fetch(`https://${ZHIWEI_DOMAIN}/login`, {
         headers: {
             accept: 'application/json',
             code: '',
@@ -96,9 +90,9 @@ async function createCard({
             descHtml: `<p>sentry: <a href="${url}">${url}</a></p>`
         };
 
-        await logToMock(JSON.stringify({ message: 'create card', payload, sentryBody }));
+        await logToMock(JSON.stringify({ message: 'create card', payload }));
 
-        const res = await fetch(`${ZHIWEI_DOMAIN}/api/v1/view/c311089eef2b496b84560aa08f099cc0/vu`, {
+        const res = await fetch(`https://${ZHIWEI_DOMAIN}/api/v2/vu`, {
             headers: {
                 accept: 'application/json',
                 'content-type': 'application/json',
@@ -138,6 +132,7 @@ async function sendToLarkSentryBot(
         sentryBody
     );
     try {
+        await logToMock(JSON.stringify({ message: 'send to lark sentry bot', hackBody }));
         const response = await fetch(SENTRY_LARK_WEBHOOK, {
             method: 'POST',
             body: JSON.stringify(hackBody),
@@ -148,6 +143,7 @@ async function sendToLarkSentryBot(
         if (response.ok !== true) {
             throw new Error('send To Lark Sentry Bot error');
         }
+        await logToMock(JSON.stringify({ message: 'send to lark sentry bot success' }));
     } catch ({ message }) {
         await logToMock(`send to lark error: ${message}`);
     }
